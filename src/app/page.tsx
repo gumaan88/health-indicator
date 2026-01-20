@@ -478,51 +478,43 @@ export default function HealthIndicator() {
     }
   }
 
+
   const generatePDF = () => {
     if (!result) return
 
     const doc = new jsPDF()
-
-    const isRTL = language === 'ar'
-
-    // Set font support for Arabic
-    if (isRTL) {
-      doc.setR2L(true) // Right to Left for Arabic
-    }
-
-    // Colors matching the app theme
-    const primaryColor = [16, 185, 129] // emerald-500
-    const secondaryColor = [245, 158, 11] // amber-500
-
-    // Page margin
     const pageWidth = 210
-    const pageHeight = 297
     const margin = 20
     const contentWidth = pageWidth - (margin * 2)
 
     let yPos = 30
 
-    // Helper function for centered text
-    const addCenteredText = (text: string, fontSize: number, color: number[], y: number) => {
-      doc.setTextColor(...color)
+    // Helper function for adding text
+    const addText = (text: string, fontSize: number, x: number, y: number, bold: boolean = false) => {
       doc.setFontSize(fontSize)
-      const textWidth = doc.getTextWidth(text)
-      doc.text(text, (pageWidth / 2) - (textWidth / 2), y)
-    }
-
-    // Helper function for RTL text
-    const addRTLText = (text: string, fontSize: number, color: number[], x: number, y: number) => {
-      doc.setTextColor(...color)
-      doc.setFontSize(fontSize)
-      if (isRTL) {
-        doc.text(text, x, y, { align: 'right' })
+      if (bold) {
+        doc.setFont('helvetica', 'bold')
       } else {
-        doc.text(text, x, y)
+        doc.setFont('helvetica', 'normal')
+      }
+
+      if (language === 'ar') {
+        doc.text(text, x, y, { align: 'right', maxWidth: contentWidth })
+      } else {
+        doc.text(text, x, y, { maxWidth: contentWidth })
       }
     }
 
-    // Title bar
-    doc.setFillColor(...primaryColor)
+    // Helper function for adding colored box
+    const addColoredBox = (y: number, height: number) => {
+      doc.setFillColor(16, 185, 129)
+      doc.roundedRect(margin, y, contentWidth, height, 3, 'F')
+      doc.setFillColor(255, 255, 255)
+      doc.roundedRect(margin + 3, y + 3, contentWidth - 6, height - 6, 1, 'F')
+    }
+
+    // Title
+    doc.setFillColor(16, 185, 129)
     doc.rect(0, 0, pageWidth, 40, 'F')
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(24)
@@ -531,119 +523,112 @@ export default function HealthIndicator() {
     const titleWidth = doc.getTextWidth(titleText)
     doc.text(titleText, (pageWidth / 2) - (titleWidth / 2), 25)
 
-    // Report Date
+    // Date
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
     const dateStr = `${t.reportDate}: ${new Date().toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}`
-    doc.text(dateStr, pageWidth - margin - doc.getTextWidth(dateStr), 35)
+    const dateWidth = doc.getTextWidth(dateStr)
+    doc.text(dateStr, pageWidth - margin - dateWidth, 35)
 
     yPos += 60
 
-    // Patient Info Section
-    doc.setFillColor(248, 250, 252)
-    doc.roundedRect(margin, yPos, contentWidth, 80, 3, 3, 'F')
-    yPos += 10
-
-    doc.setTextColor(...primaryColor)
+    // Patient Info
+    addColoredBox(yPos, 80)
+    yPos += 15
+    doc.setTextColor(16, 185, 129)
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
-    addRTLText(t.patientInfo, margin + 5, yPos)
+    addText(t.patientInfo, 14, margin + 10, yPos)
 
     yPos += 20
 
-    // Patient Details
     doc.setTextColor(60, 60, 60)
     doc.setFontSize(11)
     doc.setFont('helvetica', 'normal')
 
     if (fullName) {
-      addRTLText(`${t.name}: ${fullName}`, margin + 10, yPos)
-      yPos += 12
+      addText(`${t.name}: ${fullName}`, 11, margin + 10, yPos)
+      yPos += 15
     }
     if (jobTitle) {
-      addRTLText(`${t.jobTitle}: ${jobTitle}`, margin + 10, yPos)
-      yPos += 12
+      addText(`${t.jobTitle}: ${jobTitle}`, 11, margin + 10, yPos)
+      yPos += 15
     }
-    addRTLText(`${t.gender}: ${gender || '-'}`, margin + 10, yPos)
-    yPos += 12
-    addRTLText(`${t.age}: ${age}`, margin + 10, yPos)
-    yPos += 12
-    addRTLText(`${t.height}: ${height} cm`, margin + 10, yPos)
-    yPos += 12
-    addRTLText(`${t.weight}: ${weight} kg`, margin + 10, yPos)
+    addText(`${t.gender}: ${gender || '-'}`, 11, margin + 10, yPos)
+    yPos += 15
+    addText(`${t.age}: ${age}`, 11, margin + 10, yPos)
+    yPos += 15
+    addText(`${t.height}: ${height} cm`, 11, margin + 10, yPos)
+    yPos += 15
+    addText(`${t.weight}: ${weight} kg`, 11, margin + 10, yPos)
 
     yPos += 30
 
-    // BMI Result Section
-    doc.setFillColor(...primaryColor)
-    doc.roundedRect(margin, yPos, contentWidth, 70, 3, 3, 'F')
+    // BMI Result
+    addColoredBox(yPos, 80)
     yPos += 15
-
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(18)
     doc.setFont('helvetica', 'bold')
-    addRTLText(t.bmiResult, margin + 10, yPos)
+    addText(t.bmiResult, 14, margin + 10, yPos)
 
     yPos += 30
 
     // BMI Value in circle
     doc.setFillColor(255, 255, 255)
     doc.circle(pageWidth / 2, yPos + 15, 20, 'F')
-    doc.setFillColor(...primaryColor)
+    doc.setFillColor(16, 185, 129)
     doc.circle(pageWidth / 2, yPos + 15, 20)
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(20)
     doc.setFont('helvetica', 'bold')
-    doc.text(`${result.bmi}`, (pageWidth / 2) - (doc.getTextWidth(`${result.bmi}`) / 2), yPos + 20)
+    const bmiText = `${result.bmi}`
+    const bmiWidth = doc.getTextWidth(bmiText)
+    doc.text(bmiText, (pageWidth / 2) - (bmiWidth / 2), yPos + 20)
 
-    yPos += 55
+    yPos += 60
 
-    // Category Badge
-    const categoryY = yPos
-    const categoryText = result.categoryText
-    doc.setFillColor(...secondaryColor)
-    doc.roundedRect((pageWidth / 2) - 40, categoryY, 80, 12, 2, 2, 'F')
+    // Category
+    doc.setFillColor(245, 158, 11)
+    doc.roundedRect((pageWidth / 2) - 40, yPos, 80, 12, 1, 'F')
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
-    doc.text(categoryText, (pageWidth / 2) - (doc.getTextWidth(categoryText) / 2), categoryY + 8)
+    const categoryText = result.categoryText
+    const catWidth = doc.getTextWidth(categoryText)
+    doc.text(categoryText, (pageWidth / 2) - (catWidth / 2), yPos + 8)
 
     yPos += 30
 
-    // Recommendations Section
-    doc.setFillColor(248, 250, 252)
-    doc.roundedRect(margin, yPos, contentWidth, 60, 3, 3, 'F')
-    yPos += 10
-
-    doc.setTextColor(...primaryColor)
+    // Recommendations
+    addColoredBox(yPos, 80)
+    yPos += 15
+    doc.setTextColor(16, 185, 129)
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
-    addRTLText(t.recommendations, margin + 5, yPos)
+    addText(t.recommendations, 14, margin + 10, yPos)
 
     yPos += 20
-
-    // Recommendation text
     doc.setTextColor(60, 60, 60)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
 
-    const splitRecommendation = doc.splitTextToSize(result.recommendation, contentWidth - 10, 10)
-    splitRecommendation.forEach((line, index) => {
-      addRTLText(line, margin + 10, yPos + (index * 12))
+    const lines = doc.splitTextToSize(result.recommendation, contentWidth - 10, 10)
+    const splitResult = typeof lines === 'string' ? [lines] : lines
+    splitResult.forEach((line: string, index: number) => {
+      addText(line, 10, margin + 10, yPos + (index * 12))
     })
 
-    yPos += (splitRecommendation.length * 12) + 30
+    yPos += (splitResult.length * 12) + 30
 
-    // Health Tips
+    // Health Tips (for normal BMI)
     if (result.category === 'normal') {
-      doc.setFillColor(248, 250, 252)
-      doc.roundedRect(margin, yPos, contentWidth, 80, 3, 3, 'F')
-      yPos += 10
-
-      doc.setTextColor(...primaryColor)
+      addColoredBox(yPos, 80)
+      yPos += 15
+      doc.setTextColor(16, 185, 129)
       doc.setFontSize(14)
       doc.setFont('helvetica', 'bold')
-      addRTLText(t.tipsTitle, margin + 5, yPos)
+      addText(t.tipsTitle, 14, margin + 10, yPos)
 
       yPos += 20
 
@@ -652,23 +637,21 @@ export default function HealthIndicator() {
       doc.setFont('helvetica', 'normal')
 
       const tips = language === 'ar' ? t.tipsNormal : t.tipsNormal
-      tips.forEach((tip, index) => {
-        addRTLText(`• ${tip}`, margin + 10, yPos + (index * 12))
+      tips.forEach((tip: string, index: number) => {
+        addText(`• ${tip}`, 10, margin + 10, yPos + (index * 12))
       })
     }
 
     yPos += 100
 
-    // Calories Info (if available)
+    // Calories
     if (calories) {
-      doc.setFillColor(248, 250, 252)
-      doc.roundedRect(margin, yPos, contentWidth, 80, 3, 3, 'F')
-      yPos += 10
-
-      doc.setTextColor(...primaryColor)
+      addColoredBox(yPos, 80)
+      yPos += 15
+      doc.setTextColor(16, 185, 129)
       doc.setFontSize(14)
       doc.setFont('helvetica', 'bold')
-      addRTLText(t.caloriesResult, margin + 5, yPos)
+      addText(t.caloriesResult, 14, margin + 10, yPos)
 
       yPos += 20
 
@@ -676,34 +659,30 @@ export default function HealthIndicator() {
       doc.setFontSize(11)
       doc.setFont('helvetica', 'normal')
 
-      addRTLText(`${t.bmr}: ${calories.bmr}`, margin + 10, yPos)
-      yPos += 12
-      addRTLText(`${t.tdee}: ${calories.tdee}`, margin + 10, yPos)
-      yPos += 12
-      addRTLText(`${t.loseWeight}: ${calories.loseWeight}`, margin + 10, yPos)
-      yPos += 12
-      addRTLText(`${t.gainWeight}: ${calories.gainWeight}`, margin + 10, yPos)
+      addText(`${t.bmr}: ${calories.bmr}`, 11, margin + 10, yPos)
+      yPos += 15
+      addText(`${t.tdee}: ${calories.tdee}`, 11, margin + 10, yPos)
+      yPos += 15
+      addText(`${t.loseWeight}: ${calories.loseWeight}`, 11, margin + 10, yPos)
+      yPos += 15
+      addText(`${t.gainWeight}: ${calories.gainWeight}`, 11, margin + 10, yPos)
     }
 
-    // Ideal Weight (if available)
+    // Ideal Weight
     if (idealWeight) {
       yPos += 30
-      doc.setFillColor(248, 250, 252)
-      doc.roundedRect(margin, yPos, contentWidth, 60, 3, 3, 'F')
-      yPos += 10
-
-      doc.setTextColor(...primaryColor)
+      addColoredBox(yPos, 60)
+      yPos += 15
+      doc.setTextColor(16, 185, 129)
       doc.setFontSize(14)
       doc.setFont('helvetica', 'bold')
-      addRTLText(t.idealWeightResult, margin + 5, yPos)
+      addText(t.idealWeightResult, 14, margin + 10, yPos)
 
       yPos += 20
-
       doc.setTextColor(60, 60, 60)
       doc.setFontSize(11)
       doc.setFont('helvetica', 'normal')
-
-      addRTLText(`${t.idealWeightRange}: ${idealWeight.min} - ${idealWeight.max} kg`, margin + 10, yPos)
+      addText(`${t.idealWeightRange}: ${idealWeight.min} - ${idealWeight.max} kg`, 11, margin + 10, yPos)
     }
 
     // Footer
@@ -720,10 +699,11 @@ export default function HealthIndicator() {
     const footerWidth = doc.getTextWidth(footerText)
     doc.text(footerText, (pageWidth / 2) - (footerWidth / 2), yPos)
 
-    // Save the PDF
+    // Save PDF
     const fileName = `health-indicator-${Date.now()}.pdf`
     doc.save(fileName)
   }
+
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950 flex flex-col ${language === 'ar' ? 'rtl' : 'ltr'}`}>
