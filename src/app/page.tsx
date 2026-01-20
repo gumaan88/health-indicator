@@ -484,60 +484,51 @@ export default function HealthIndicator() {
 
 
   const generatePDF = async () => {
-    if (!result || !reportRef.current) return
+    console.log('generatePDF called')
+    console.log('result:', result)
+    console.log('reportRef.current:', reportRef.current)
+
+    if (!result || !reportRef.current) {
+      alert('Please calculate your BMI first')
+      return
+    }
 
     setIsGenerating(true)
     try {
       const element = reportRef.current
+      console.log('Element found:', element)
 
-      // Clean unsupported CSS color functions before rendering
+      // Simple html2canvas configuration
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
-        logging: false,
+        logging: true,
         backgroundColor: '#ffffff',
-        windowWidth: 794, // A4 width in pixels at 96 DPI
-        ignoreElements: (element) => {
-          // Skip elements with problematic color functions
-          const style = window.getComputedStyle(element)
-          const colorProperties = ['color', 'backgroundColor', 'borderColor', 'boxShadow']
-          for (const prop of colorProperties) {
-            const value = style.getPropertyValue(prop)
-            if (value && (value.includes('lab(') || value.includes('color('))) {
-              return true
-            }
-          }
-          return false
-        },
-        onclone: (clonedDoc) => {
-          // Replace lab color functions in cloned document
-          const allElements = clonedDoc.querySelectorAll('*')
-          allElements.forEach((el) => {
-            const computedStyle = window.getComputedStyle(el)
-            const styleProperties = ['color', 'backgroundColor', 'borderColor', 'boxShadow', 'textShadow']
-            styleProperties.forEach((prop) => {
-              let value = computedStyle.getPropertyValue(prop)
-              if (value && value.includes('lab(')) {
-                // Replace lab colors with fallback hex colors
-                value = value.replace(/lab\([^)]+\)/gi, '#000000')
-                (el as HTMLElement).style.setProperty(prop as any, value, 'important')
-              }
-            })
-          })
-        }
+        windowWidth: 794,
+        allowTaint: true
       })
 
-      const imgData = canvas.toDataURL('image/jpeg', 1.0)
+      console.log('Canvas created:', canvas)
+      console.log('Canvas dimensions:', canvas.width, 'x', canvas.height)
+
+      const imgData = canvas.toDataURL('image/png', 1.0)
+      console.log('Image data created, length:', imgData.length)
+
       const pdf = new jsPDF('p', 'mm', 'a4')
       const imgProps = pdf.getImageProperties(imgData)
       const pdfWidth = pdf.internal.pageSize.getWidth()
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
 
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight)
-      pdf.save(`${reportTitle || 'health-report'}-${Date.now()}.pdf`)
+      console.log('PDF dimensions:', pdfWidth, 'x', pdfHeight, 'mm')
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+      const filename = `${reportTitle || 'health-report'}-${Date.now()}.pdf`
+      pdf.save(filename)
+      console.log('PDF saved successfully:', filename)
     } catch (error) {
       console.error('Error generating PDF:', error)
-      alert('Error generating PDF. Please try again.')
+      const errorMessage = (error as Error).message
+      alert('Error generating PDF: ' + errorMessage + '\n\nPlease try again or use browser print (Ctrl+P).')
     } finally {
       setIsGenerating(false)
     }
