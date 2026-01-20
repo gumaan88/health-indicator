@@ -498,7 +498,18 @@ export default function HealthIndicator() {
                           <Ruler className="w-4 h-4 inline mr-2 text-emerald-600" />
                           {t.height}
                         </Label>
-                        <div className="space-y-2">
+                        <div className="space-y-4">
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              value={height}
+                              onChange={(e) => setHeight(e.target.value)}
+                              className="text-center text-2xl font-bold h-16 border-2 border-emerald-200 dark:border-emerald-900 focus:border-emerald-500 transition-all bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-slate-800"
+                              min="120"
+                              max="220"
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 dark:text-emerald-400 text-sm font-semibold">cm</div>
+                          </div>
                           <Slider
                             value={[height ? parseInt(height) : 170]}
                             onValueChange={(value) => setHeight(value[0].toString())}
@@ -507,17 +518,6 @@ export default function HealthIndicator() {
                             step={1}
                             className="w-full"
                           />
-                          <div className="relative">
-                            <Input
-                              type="number"
-                              value={height}
-                              onChange={(e) => setHeight(e.target.value)}
-                              className="text-center text-lg h-12 border-2 border-slate-200 dark:border-slate-700 focus:border-emerald-500 transition-all"
-                              min="120"
-                              max="220"
-                            />
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">cm</div>
-                          </div>
                         </div>
                       </div>
 
@@ -527,7 +527,18 @@ export default function HealthIndicator() {
                           <Scale className="w-4 h-4 inline mr-2 text-emerald-600" />
                           {t.weight}
                         </Label>
-                        <div className="space-y-2">
+                        <div className="space-y-4">
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              value={weight}
+                              onChange={(e) => setWeight(e.target.value)}
+                              className="text-center text-2xl font-bold h-16 border-2 border-emerald-200 dark:border-emerald-900 focus:border-emerald-500 transition-all bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-slate-800"
+                              min="30"
+                              max="200"
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 dark:text-emerald-400 text-sm font-semibold">kg</div>
+                          </div>
                           <Slider
                             value={[weight ? parseInt(weight) : 70]}
                             onValueChange={(value) => setWeight(value[0].toString())}
@@ -536,17 +547,6 @@ export default function HealthIndicator() {
                             step={1}
                             className="w-full"
                           />
-                          <div className="relative">
-                            <Input
-                              type="number"
-                              value={weight}
-                              onChange={(e) => setWeight(e.target.value)}
-                              className="text-center text-lg h-12 border-2 border-slate-200 dark:border-slate-700 focus:border-emerald-500 transition-all"
-                              min="30"
-                              max="200"
-                            />
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">kg</div>
-                          </div>
                         </div>
                       </div>
 
