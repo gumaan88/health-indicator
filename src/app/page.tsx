@@ -910,16 +910,49 @@ export default function HealthIndicator() {
           <TabsContent value="calories">
             <Card className="shadow-xl border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
               <CardHeader className="pb-4">
-                <CardTitle className="text-xl text-slate-800 dark:text-slate-100 font-bold">
+                <CardTitle className="text-xl text-slate-800 dark:text-slate-100 font-bold flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-orange-500" />
                   {t.calculateCalories}
                 </CardTitle>
                 <CardDescription className="text-slate-600 dark:text-slate-400">
-                  {language === 'ar' ? 'أكمل بياناتك للحساب' : 'Complete your data to calculate'}
+                  {calories ? language === 'ar' ? 'بناءً على بياناتك الحالية' : 'Based on your current data' : language === 'ar' ? 'أكمل بياناتك للحساب' : 'Complete your data to calculate'}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="text-center py-8 text-slate-500 dark:text-slate-400">
-                <Flame className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>{language === 'ar' ? 'يظهر هنا بعد حساب BMI' : 'Will appear after BMI calculation'}</p>
+              <CardContent>
+                {calories ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{calories.bmr}</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">{t.bmr}</div>
+                      </div>
+                      <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg text-center border border-emerald-200 dark:border-emerald-800">
+                        <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{calories.tdee}</div>
+                        <div className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">{t.tdee}</div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2">
+                      <div className="flex justify-between items-center p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-800">
+                        <span className="text-sm font-medium text-orange-700 dark:text-orange-300">{t.loseWeight}</span>
+                        <span className="text-lg font-bold text-orange-600 dark:text-orange-400">{calories.loseWeight}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                        <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">{t.maintain}</span>
+                        <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{calories.maintain}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{t.gainWeight}</span>
+                        <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{calories.gainWeight}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+                    <Flame className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>{!gender ? language === 'ar' ? 'يرجى اختيار الجنس لحساب السعرات' : 'Please select gender to calculate calories' : language === 'ar' ? 'يظهر هنا بعد حساب BMI' : 'Will appear after BMI calculation'}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -927,16 +960,31 @@ export default function HealthIndicator() {
           <TabsContent value="ideal">
             <Card className="shadow-xl border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
               <CardHeader className="pb-4">
-                <CardTitle className="text-xl text-slate-800 dark:text-slate-100 font-bold">
+                <CardTitle className="text-xl text-slate-800 dark:text-slate-100 font-bold flex items-center gap-2">
+                  <Target className="w-5 h-5 text-teal-500" />
                   {t.calculateIdealWeight}
                 </CardTitle>
                 <CardDescription className="text-slate-600 dark:text-slate-400">
-                  {language === 'ar' ? 'أكمل بياناتك للحساب' : 'Complete your data to calculate'}
+                  {idealWeight ? language === 'ar' ? 'بناءً على طولك الحالي' : 'Based on your current height' : language === 'ar' ? 'أكمل بياناتك للحساب' : 'Complete your data to calculate'}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="text-center py-8 text-slate-500 dark:text-slate-400">
-                <Target className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>{language === 'ar' ? 'يظهر هنا بعد حساب BMI' : 'Will appear after BMI calculation'}</p>
+              <CardContent>
+                {idealWeight ? (
+                  <div className="text-center p-6 bg-gradient-to-br from-teal-50 to-emerald-50 dark:from-teal-950/30 dark:to-emerald-950/30 rounded-lg border border-teal-200 dark:border-teal-800">
+                    <div className="text-sm text-teal-700 dark:text-teal-300 font-medium mb-2">{t.idealWeightRange}</div>
+                    <div className="text-4xl font-bold text-teal-600 dark:text-teal-400 mb-2">
+                      {idealWeight.min} - {idealWeight.max} kg
+                    </div>
+                    <div className="text-sm text-teal-600 dark:text-teal-400">
+                      {language === 'ar' ? 'المتوسط' : 'Average'}: <span className="font-bold text-lg">{idealWeight.average} kg</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+                    <Target className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>{!height ? language === 'ar' ? 'يرجى إدخال طولك' : 'Please enter your height' : language === 'ar' ? 'يظهر هنا بعد حساب BMI' : 'Will appear after BMI calculation'}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
