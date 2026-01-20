@@ -489,12 +489,42 @@ export default function HealthIndicator() {
     setIsGenerating(true)
     try {
       const element = reportRef.current
+
+      // Clean unsupported CSS color functions before rendering
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
-        windowWidth: 794 // A4 width in pixels at 96 DPI
+        windowWidth: 794, // A4 width in pixels at 96 DPI
+        ignoreElements: (element) => {
+          // Skip elements with problematic color functions
+          const style = window.getComputedStyle(element)
+          const colorProperties = ['color', 'backgroundColor', 'borderColor', 'boxShadow']
+          for (const prop of colorProperties) {
+            const value = style.getPropertyValue(prop)
+            if (value && (value.includes('lab(') || value.includes('color('))) {
+              return true
+            }
+          }
+          return false
+        },
+        onclone: (clonedDoc) => {
+          // Replace lab color functions in cloned document
+          const allElements = clonedDoc.querySelectorAll('*')
+          allElements.forEach((el) => {
+            const computedStyle = window.getComputedStyle(el)
+            const styleProperties = ['color', 'backgroundColor', 'borderColor', 'boxShadow', 'textShadow']
+            styleProperties.forEach((prop) => {
+              let value = computedStyle.getPropertyValue(prop)
+              if (value && value.includes('lab(')) {
+                // Replace lab colors with fallback hex colors
+                value = value.replace(/lab\([^)]+\)/gi, '#000000')
+                (el as HTMLElement).style.setProperty(prop as any, value, 'important')
+              }
+            })
+          })
+        }
       })
 
       const imgData = canvas.toDataURL('image/jpeg', 1.0)
@@ -507,6 +537,7 @@ export default function HealthIndicator() {
       pdf.save(`${reportTitle || 'health-report'}-${Date.now()}.pdf`)
     } catch (error) {
       console.error('Error generating PDF:', error)
+      alert('Error generating PDF. Please try again.')
     } finally {
       setIsGenerating(false)
     }
