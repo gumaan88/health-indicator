@@ -1,5 +1,8 @@
 'use client'
 
+// Force dynamic rendering to ensure updates appear on Vercel
+export const dynamic = 'force-dynamic';
+
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
