@@ -3,7 +3,7 @@
 // Force dynamic rendering to ensure updates appear on Vercel
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,6 +16,8 @@ import { Heart, Scale, Ruler, User, RefreshCw, Activity, Info, TrendingUp, Trend
 import { motion, AnimatePresence } from 'framer-motion'
 import { Slider } from '@/components/ui/slider'
 import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
+import { HealthReport } from '@/components/HealthReport'
 
 // Language translations
 const translations = {
@@ -256,6 +258,8 @@ export default function HealthIndicator() {
   const [fullName, setFullName] = useState<string>('')
   const [jobTitle, setJobTitle] = useState<string>('')
   const [reportTitle, setReportTitle] = useState<string>('')
+  const reportRef = useRef<HTMLDivElement>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
 
   // Load saved data from localStorage
   useEffect(() => {
@@ -458,7 +462,7 @@ export default function HealthIndicator() {
     if (!result) return
 
     const text = language === 'ar'
-      ? `BMI: ${result.bmi} (${result.categoryText})\nالطول: ${height} سم\nالوزن: ${weight} كجم\n\n${t.recommendation}`
+      ? `BMI: ${result.bmi} (${result.categoryText})\nالطول: ${height} سم\nالوزن: ${weight} كجم\n\n${result.recommendation}`
       : `BMI: ${result.bmi} (${result.categoryText})\nHeight: ${height} cm\nWeight: ${weight} kg\n\n${result.recommendation}`
 
     try {
@@ -479,229 +483,33 @@ export default function HealthIndicator() {
   }
 
 
-  const generatePDF = () => {
-    if (!result) return
+  const generatePDF = async () => {
+    if (!result || !reportRef.current) return
 
-    const doc = new jsPDF()
-    const pageWidth = 210
-    const margin = 20
-    const contentWidth = pageWidth - (margin * 2)
-
-    let yPos = 30
-
-    // Helper function for adding text
-    const addText = (text: string, fontSize: number, x: number, y: number, bold: boolean = false) => {
-      doc.setFontSize(fontSize)
-      if (bold) {
-        doc.setFont('helvetica', 'bold')
-      } else {
-        doc.setFont('helvetica', 'normal')
-      }
-
-      if (language === 'ar') {
-        doc.text(text, x, y, { align: 'right', maxWidth: contentWidth })
-      } else {
-        doc.text(text, x, y, { maxWidth: contentWidth })
-      }
-    }
-
-    // Helper function for adding colored box
-    const addColoredBox = (y: number, height: number) => {
-      doc.setFillColor(16, 185, 129)
-      doc.roundedRect(margin, y, contentWidth, height, 3, 'F')
-      doc.setFillColor(255, 255, 255)
-      doc.roundedRect(margin + 3, y + 3, contentWidth - 6, height - 6, 1, 'F')
-    }
-
-    // Title
-    doc.setFillColor(16, 185, 129)
-    doc.rect(0, 0, pageWidth, 40, 'F')
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(24)
-    doc.setFont('helvetica', 'bold')
-    const titleText = reportTitle || t.title
-    const titleWidth = doc.getTextWidth(titleText)
-    doc.text(titleText, (pageWidth / 2) - (titleWidth / 2), 25)
-
-    // Date
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    const dateStr = `${t.reportDate}: ${new Date().toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}`
-    const dateWidth = doc.getTextWidth(dateStr)
-    doc.text(dateStr, pageWidth - margin - dateWidth, 35)
-
-    yPos += 60
-
-    // Patient Info
-    addColoredBox(yPos, 80)
-    yPos += 15
-    doc.setTextColor(16, 185, 129)
-    doc.setFontSize(14)
-    doc.setFont('helvetica', 'bold')
-    addText(t.patientInfo, 14, margin + 10, yPos)
-
-    yPos += 20
-
-    doc.setTextColor(60, 60, 60)
-    doc.setFontSize(11)
-    doc.setFont('helvetica', 'normal')
-
-    if (fullName) {
-      addText(`${t.name}: ${fullName}`, 11, margin + 10, yPos)
-      yPos += 15
-    }
-    if (jobTitle) {
-      addText(`${t.jobTitle}: ${jobTitle}`, 11, margin + 10, yPos)
-      yPos += 15
-    }
-    addText(`${t.gender}: ${gender || '-'}`, 11, margin + 10, yPos)
-    yPos += 15
-    addText(`${t.age}: ${age}`, 11, margin + 10, yPos)
-    yPos += 15
-    addText(`${t.height}: ${height} cm`, 11, margin + 10, yPos)
-    yPos += 15
-    addText(`${t.weight}: ${weight} kg`, 11, margin + 10, yPos)
-
-    yPos += 30
-
-    // BMI Result
-    addColoredBox(yPos, 80)
-    yPos += 15
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(18)
-    doc.setFont('helvetica', 'bold')
-    addText(t.bmiResult, 14, margin + 10, yPos)
-
-    yPos += 30
-
-    // BMI Value in circle
-    doc.setFillColor(255, 255, 255)
-    doc.circle(pageWidth / 2, yPos + 15, 20, 'F')
-    doc.setFillColor(16, 185, 129)
-    doc.circle(pageWidth / 2, yPos + 15, 20)
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(20)
-    doc.setFont('helvetica', 'bold')
-    const bmiText = `${result.bmi}`
-    const bmiWidth = doc.getTextWidth(bmiText)
-    doc.text(bmiText, (pageWidth / 2) - (bmiWidth / 2), yPos + 20)
-
-    yPos += 60
-
-    // Category
-    doc.setFillColor(245, 158, 11)
-    doc.roundedRect((pageWidth / 2) - 40, yPos, 80, 12, 1, 'F')
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    const categoryText = result.categoryText
-    const catWidth = doc.getTextWidth(categoryText)
-    doc.text(categoryText, (pageWidth / 2) - (catWidth / 2), yPos + 8)
-
-    yPos += 30
-
-    // Recommendations
-    addColoredBox(yPos, 80)
-    yPos += 15
-    doc.setTextColor(16, 185, 129)
-    doc.setFontSize(14)
-    doc.setFont('helvetica', 'bold')
-    addText(t.recommendations, 14, margin + 10, yPos)
-
-    yPos += 20
-    doc.setTextColor(60, 60, 60)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-
-    const lines = doc.splitTextToSize(result.recommendation, contentWidth - 10, 10)
-    const splitResult = typeof lines === 'string' ? [lines] : lines
-    splitResult.forEach((line: string, index: number) => {
-      addText(line, 10, margin + 10, yPos + (index * 12))
-    })
-
-    yPos += (splitResult.length * 12) + 30
-
-    // Health Tips (for normal BMI)
-    if (result.category === 'normal') {
-      addColoredBox(yPos, 80)
-      yPos += 15
-      doc.setTextColor(16, 185, 129)
-      doc.setFontSize(14)
-      doc.setFont('helvetica', 'bold')
-      addText(t.tipsTitle, 14, margin + 10, yPos)
-
-      yPos += 20
-
-      doc.setTextColor(60, 60, 60)
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-
-      const tips = language === 'ar' ? t.tipsNormal : t.tipsNormal
-      tips.forEach((tip: string, index: number) => {
-        addText(`• ${tip}`, 10, margin + 10, yPos + (index * 12))
+    setIsGenerating(true)
+    try {
+      const element = reportRef.current
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: 794 // A4 width in pixels at 96 DPI
       })
+
+      const imgData = canvas.toDataURL('image/jpeg', 1.0)
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const imgProps = pdf.getImageProperties(imgData)
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
+
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight)
+      pdf.save(`${reportTitle || 'health-report'}-${Date.now()}.pdf`)
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+    } finally {
+      setIsGenerating(false)
     }
-
-    yPos += 100
-
-    // Calories
-    if (calories) {
-      addColoredBox(yPos, 80)
-      yPos += 15
-      doc.setTextColor(16, 185, 129)
-      doc.setFontSize(14)
-      doc.setFont('helvetica', 'bold')
-      addText(t.caloriesResult, 14, margin + 10, yPos)
-
-      yPos += 20
-
-      doc.setTextColor(60, 60, 60)
-      doc.setFontSize(11)
-      doc.setFont('helvetica', 'normal')
-
-      addText(`${t.bmr}: ${calories.bmr}`, 11, margin + 10, yPos)
-      yPos += 15
-      addText(`${t.tdee}: ${calories.tdee}`, 11, margin + 10, yPos)
-      yPos += 15
-      addText(`${t.loseWeight}: ${calories.loseWeight}`, 11, margin + 10, yPos)
-      yPos += 15
-      addText(`${t.gainWeight}: ${calories.gainWeight}`, 11, margin + 10, yPos)
-    }
-
-    // Ideal Weight
-    if (idealWeight) {
-      yPos += 30
-      addColoredBox(yPos, 60)
-      yPos += 15
-      doc.setTextColor(16, 185, 129)
-      doc.setFontSize(14)
-      doc.setFont('helvetica', 'bold')
-      addText(t.idealWeightResult, 14, margin + 10, yPos)
-
-      yPos += 20
-      doc.setTextColor(60, 60, 60)
-      doc.setFontSize(11)
-      doc.setFont('helvetica', 'normal')
-      addText(`${t.idealWeightRange}: ${idealWeight.min} - ${idealWeight.max} kg`, 11, margin + 10, yPos)
-    }
-
-    // Footer
-    yPos += 40
-    doc.setFillColor(240, 240, 240)
-    doc.rect(0, yPos, pageWidth, 30, 'F')
-    yPos += 10
-
-    doc.setTextColor(100, 100, 100)
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-
-    const footerText = `${t.generatedBy} Health Indicator - ${t.footer} | ${t.reportDate}: ${new Date().toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}`
-    const footerWidth = doc.getTextWidth(footerText)
-    doc.text(footerText, (pageWidth / 2) - (footerWidth / 2), yPos)
-
-    // Save PDF
-    const fileName = `health-indicator-${Date.now()}.pdf`
-    doc.save(fileName)
   }
 
 
@@ -1248,15 +1056,34 @@ export default function HealthIndicator() {
                     </CardContent>
                   </Card>
 
-                  {/* Reset Button */}
-                  <Button
-                    onClick={resetForm}
-                    variant="outline"
-                    className="w-full h-14 border-2 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-semibold"
-                  >
-                    <RefreshCw className="w-5 h-5 ml-2" />
-                    {t.recalculate}
-                  </Button>
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Button
+                      onClick={generatePDF}
+                      disabled={isGenerating}
+                      className="h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 transition-all"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <RefreshCw className="w-5 h-5 ml-2 animate-spin" />
+                          {t.calculating}
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-5 h-5 ml-2" />
+                          {t.downloadPDF}
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={resetForm}
+                      variant="outline"
+                      className="h-14 border-2 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-semibold"
+                    >
+                      <RefreshCw className="w-5 h-5 ml-2" />
+                      {t.recalculate}
+                    </Button>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1404,6 +1231,40 @@ export default function HealthIndicator() {
           </p>
         </div>
       </footer>
+
+      {/* Hidden Report Template for PDF Generation */}
+      <div className="fixed -left-[9999px] top-0 overflow-hidden" aria-hidden="true">
+        <div ref={reportRef}>
+          {result && (
+            <HealthReport
+              data={{
+                language,
+                fullName,
+                jobTitle,
+                reportTitle,
+                height,
+                weight,
+                age,
+                gender: gender || undefined,
+                activityLevel,
+                result: {
+                  bmi: result.bmi,
+                  categoryText: result.categoryText,
+                  recommendation: result.recommendation,
+                  color: result.color,
+                  progress: result.progress
+                },
+                calories: calories || undefined,
+                idealWeight: idealWeight || undefined,
+                tips: result.category === 'underweight' ? t.tipsUnderweight :
+                      result.category === 'normal' ? t.tipsNormal :
+                      result.category === 'overweight' ? t.tipsOverweight : t.tipsObese,
+                t
+              }}
+            />
+          )}
+        </div>
+      </div>
     </div>
   )
 }
