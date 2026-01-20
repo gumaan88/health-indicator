@@ -28,6 +28,10 @@ const translations = {
     height: 'الطول (سم)',
     weight: 'الوزن (كجم)',
     age: 'العمر (سنة)',
+    ageInputManual: 'إدخال العمر',
+    ageInputBirthdate: 'تاريخ الميلاد',
+    birthdate: 'تاريخ الميلاد',
+    calculatedAge: 'العمر المحسوب',
     gender: 'الجنس',
     optional: '(اختياري)',
     male: 'ذكر',
@@ -103,6 +107,10 @@ const translations = {
     height: 'Height (cm)',
     weight: 'Weight (kg)',
     age: 'Age (years)',
+    ageInputManual: 'Enter Age',
+    ageInputBirthdate: 'Date of Birth',
+    birthdate: 'Birth Date',
+    calculatedAge: 'Calculated Age',
     gender: 'Gender',
     optional: '(optional)',
     male: 'Male',
@@ -217,6 +225,10 @@ export default function HealthIndicator() {
   const [isLoading, setIsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
 
+  // Age input mode: 'manual' (enter age directly) or 'birthdate' (select birth date)
+  const [ageInputMode, setAgeInputMode] = useState<'manual' | 'birthdate'>('manual')
+  const [birthdate, setBirthdate] = useState<string>('')
+
   // Load saved data from localStorage
   useEffect(() => {
     const savedLang = localStorage.getItem('health-indicator-lang') as 'ar' | 'en' | null
@@ -238,6 +250,24 @@ export default function HealthIndicator() {
   useEffect(() => {
     localStorage.setItem('health-indicator-lang', language)
   }, [language])
+
+  // Calculate age from birthdate automatically
+  useEffect(() => {
+    if (ageInputMode === 'birthdate' && birthdate) {
+      const today = new Date()
+      const birth = new Date(birthdate)
+      let ageNum = today.getFullYear() - birth.getFullYear()
+      const monthDiff = today.getMonth() - birth.getMonth()
+
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        ageNum--
+      }
+
+      if (ageNum >= 0) {
+        setAge(ageNum.toString())
+      }
+    }
+  }, [birthdate, ageInputMode])
 
   const saveToHistory = (bmi: number, category: string, weight: number, height: number, age: number) => {
     const entry: HistoryEntry = {
@@ -389,6 +419,8 @@ export default function HealthIndicator() {
     setResult(null)
     setCalories(null)
     setIdealWeight(null)
+    setBirthdate('')
+    setAgeInputMode('manual')
   }
 
   const shareResult = async () => {
@@ -556,17 +588,75 @@ export default function HealthIndicator() {
                           <Zap className="w-4 h-4 inline mr-2 text-emerald-600" />
                           {t.age}
                         </Label>
-                        <div className="relative">
-                          <Input
-                            type="number"
-                            value={age}
-                            onChange={(e) => setAge(e.target.value)}
-                            className="text-center text-lg h-12 border-2 border-slate-200 dark:border-slate-700 focus:border-emerald-500 transition-all"
-                            min="18"
-                            max="120"
-                          />
-                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">{language === 'ar' ? 'سنة' : 'years'}</div>
+
+                        {/* Age Input Mode Toggle */}
+                        <div className="flex gap-2 mb-2">
+                          <Button
+                            type="button"
+                            variant={ageInputMode === 'manual' ? 'default' : 'outline'}
+                            size="sm"
+                            className={`flex-1 text-sm ${
+                              ageInputMode === 'manual'
+                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                : 'border-2 border-slate-200 dark:border-slate-700'
+                            }`}
+                            onClick={() => setAgeInputMode('manual')}
+                          >
+                            {t.ageInputManual}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={ageInputMode === 'birthdate' ? 'default' : 'outline'}
+                            size="sm"
+                            className={`flex-1 text-sm ${
+                              ageInputMode === 'birthdate'
+                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                : 'border-2 border-slate-200 dark:border-slate-700'
+                            }`}
+                            onClick={() => setAgeInputMode('birthdate')}
+                          >
+                            {t.ageInputBirthdate}
+                          </Button>
                         </div>
+
+                        {/* Manual Age Input */}
+                        {ageInputMode === 'manual' ? (
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              value={age}
+                              onChange={(e) => setAge(e.target.value)}
+                              className="text-center text-2xl font-bold h-16 border-2 border-emerald-200 dark:border-emerald-900 focus:border-emerald-500 transition-all bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-slate-800"
+                              min="18"
+                              max="120"
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 dark:text-emerald-400 text-sm font-semibold">{language === 'ar' ? 'سنة' : 'years'}</div>
+                          </div>
+                        ) : (
+                          /* Birthdate Input */
+                          <div className="space-y-3">
+                            <div className="relative">
+                              <Input
+                                type="date"
+                                value={birthdate}
+                                onChange={(e) => setBirthdate(e.target.value)}
+                                className="text-center text-lg h-14 border-2 border-emerald-200 dark:border-emerald-900 focus:border-emerald-500 transition-all bg-white dark:bg-slate-800"
+                                max={new Date().toISOString().split('T')[0]}
+                              />
+                            </div>
+                            {/* Calculated Age Display */}
+                            {age && (
+                              <div className="text-center p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                                <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">
+                                  {t.calculatedAge}
+                                </div>
+                                <div className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">
+                                  {age} {language === 'ar' ? 'سنة' : 'years'}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Gender Selection */}
